@@ -1,1 +1,403 @@
-index.html
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no">
+<title>Cover Page Designer</title>
+<script>
+  // Load jsPDF with automatic fallback across CDNs, and retry support — fixes the
+  // "Library not loaded" error caused by a single CDN being slow/blocked.
+  const PDF_SOURCES = [
+    'https://cdnjs.cloudflare.com/ajax/libs/jspdf/2.5.1/jspdf.umd.min.js',
+    'https://cdn.jsdelivr.net/npm/jspdf@2.5.1/dist/jspdf.umd.min.js',
+    'https://unpkg.com/jspdf@2.5.1/dist/jspdf.umd.min.js'
+  ];
+  let pdfLoadPromise = null;
+  function loadScriptOnce(url) {
+    return new Promise((resolve, reject) => {
+      const s = document.createElement('script');
+      s.src = url; s.async = true;
+      s.onload = () => resolve();
+      s.onerror = () => reject(new Error('Failed to load ' + url));
+      document.head.appendChild(s);
+    });
+  }
+  function ensurePdfLib(forceRetry) {
+    if (window.jspdf && window.jspdf.jsPDF) return Promise.resolve();
+    if (pdfLoadPromise && !forceRetry) return pdfLoadPromise;
+    pdfLoadPromise = (async () => {
+      for (const url of PDF_SOURCES) {
+        try { await loadScriptOnce(url); if (window.jspdf && window.jspdf.jsPDF) return; } catch (e) { /* try next source */ }
+      }
+      throw new Error('Could not load the PDF engine. Check your internet connection and try the download again.');
+    })();
+    return pdfLoadPromise;
+  }
+  ensurePdfLib(); // start loading immediately in the background
+</script>
+<style>
+:root {
+    --theme-blue: #0ea5e9; --theme-blue-dark: #0284c7; --theme-blue-light: #38bdf8;
+    --card-bg: rgba(15, 23, 42, 0.45); --card-border: rgba(255, 255, 255, 0.08);
+    --input-bg: rgba(0, 0, 0, 0.35); --input-border: rgba(255, 255, 255, 0.1);
+    --text-main: #f8fafc; --text-label: #cbd5e1; --placeholder: #64748b;
+}
+
+body { margin: 0; padding: 30px 15px; font-family: 'Inter', sans-serif; color: var(--text-main); min-height: 100vh; display: flex; justify-content: center; align-items: flex-start; overflow-x: hidden; background-color: #030712; }
+
+.bg-base { position: fixed; top: 0; left: 0; width: 100vw; height: 100vh; background: #030712; z-index: -4; }
+.bg-pattern { position: fixed; top: 0; left: 0; width: 100vw; height: 100vh; background-image: radial-gradient(rgba(255, 255, 255, 0.03) 1px, transparent 1px); background-size: 28px 28px; z-index: -3; }
+.ambient-orb { position: fixed; border-radius: 50%; filter: blur(120px); z-index: -2; opacity: 0.35; pointer-events: none; }
+.orb-blue { top: -10%; left: -10%; width: 65vw; height: 65vw; background: radial-gradient(circle, rgba(14, 165, 233, 0.6) 0%, transparent 70%); animation: floatBlue 18s infinite alternate cubic-bezier(0.4, 0, 0.2, 1); }
+.orb-red { bottom: -15%; right: -15%; width: 70vw; height: 70vw; background: radial-gradient(circle, rgba(225, 29, 72, 0.4) 0%, transparent 70%); animation: floatRed 22s infinite alternate cubic-bezier(0.4, 0, 0.2, 1); }
+
+@keyframes floatBlue { 0% { transform: translate(0, 0) scale(1); } 100% { transform: translate(15%, 10%) scale(1.1); } }
+@keyframes floatRed { 0% { transform: translate(0, 0) scale(1); } 100% { transform: translate(-10%, -15%) scale(1.05); } }
+
+.main-wrapper { width: 100%; max-width: 520px; display: flex; justify-content: center; z-index: 10; }
+.container { background: var(--card-bg); backdrop-filter: blur(35px); -webkit-backdrop-filter: blur(35px); border: 1px solid var(--card-border); border-top: 1px solid rgba(255, 255, 255, 0.15); border-radius: 28px; padding: 45px 32px; width: 100%; box-shadow: 0 35px 70px -15px rgba(0,0,0,0.8), inset 0 1px 0 rgba(255,255,255,0.05); box-sizing: border-box; }
+
+.header-bar { display: flex; justify-content: space-between; align-items: flex-start; margin-bottom: 40px; }
+h1 { margin: 0; font-size: 1.5rem; text-align: left; font-weight: 900; color: transparent; background: linear-gradient(135deg, #ffffff 20%, var(--theme-blue-light) 100%); background-clip: text; -webkit-background-clip: text; letter-spacing: 2px; }
+
+.input-grid { display: grid; grid-template-columns: 1fr 1fr; gap: 26px 18px; }
+.full-line { grid-column: 1 / -1; } .half-line { grid-column: span 1; }
+label { display: block; margin-bottom: 10px; font-size: 0.75rem; font-weight: 700; color: var(--text-label); text-transform: uppercase; letter-spacing: 1.2px; }
+input, textarea { width: 100%; padding: 16px 20px; background: var(--input-bg); border: 1px solid var(--input-border); border-radius: 16px; color: #ffffff; font-size: 1.05rem; font-weight: 600; font-family: monospace; box-sizing: border-box; outline: none; transition: all 0.4s ease; box-shadow: inset 0 2px 6px rgba(0,0,0,0.3); }
+textarea { resize: vertical; min-height: 80px; }
+::placeholder { color: var(--placeholder); opacity: 1; }
+input:hover, textarea:hover { border-color: rgba(255, 255, 255, 0.2); background: rgba(0, 0, 0, 0.45); }
+input:focus, textarea:focus { border-color: var(--theme-blue); background: rgba(14, 165, 233, 0.05); box-shadow: 0 0 0 4px rgba(14, 165, 233, 0.15), inset 0 2px 4px rgba(0,0,0,0.2); transform: translateY(-2px); }
+
+.preview-section { margin-top: 55px; }
+.preview-header { text-align: center; font-size: 0.85rem; font-weight: 800; color: var(--text-label); text-transform: uppercase; margin-bottom: 22px; letter-spacing: 4px; }
+.canvas-wrapper { background: #ffffff; border-radius: 8px; aspect-ratio: 210 / 297; width: 100%; box-shadow: 0 25px 50px -12px rgba(0,0,0,0.6), 0 0 0 1px rgba(255,255,255,0.1); overflow: hidden; position: relative; transition: transform 0.3s ease; }
+.canvas-wrapper:hover { transform: scale(1.01); }
+canvas { width: 100%; height: 100%; display: block; }
+
+.btn-primary { width: 100%; padding: 22px; margin-top: 45px; background: linear-gradient(135deg, var(--theme-blue), var(--theme-blue-dark)); color: #ffffff; border: none; border-radius: 18px; font-size: 1.15rem; font-weight: 800; cursor: pointer; text-transform: uppercase; letter-spacing: 1.5px; display: flex; justify-content: center; align-items: center; gap: 12px; transition: all 0.3s ease; box-shadow: 0 12px 30px -8px rgba(14, 165, 233, 0.6), inset 0 1px 1px rgba(255,255,255,0.3); }
+.btn-primary svg { width: 24px; height: 24px; }
+.btn-primary:hover { box-shadow: 0 20px 40px -8px rgba(14, 165, 233, 0.7), inset 0 1px 1px rgba(255,255,255,0.4); transform: translateY(-3px); background: linear-gradient(135deg, var(--theme-blue-light), var(--theme-blue)); }
+.btn-primary:active { transform: translateY(1px) scale(0.98); box-shadow: 0 6px 15px -5px rgba(14, 165, 233, 0.5); }
+.error-msg { color: #fca5a5; background: rgba(239, 68, 68, 0.15); padding: 16px; border-radius: 14px; border: 1px solid rgba(239, 68, 68, 0.3); margin-top: 24px; font-size: 0.9rem; text-align: center; display: none; font-weight: 600; line-height: 1.4; }
+
+/* Page options: margin toggle + text opacity (new) */
+.options-box { background: rgba(14, 165, 233, 0.04); border: 1px solid rgba(14, 165, 233, 0.15); border-radius: 16px; padding: 18px 20px; }
+.toggle-row { display: flex; justify-content: space-between; align-items: center; }
+.toggle-row label { margin: 0; color: var(--text-main); font-size: 0.8rem; font-weight: 600; letter-spacing: 0.5px; text-transform: none; }
+.switch { position: relative; display: inline-block; width: 44px; height: 24px; flex-shrink: 0; }
+.switch input { opacity: 0; width: 0; height: 0; }
+.slider { position: absolute; cursor: pointer; top: 0; left: 0; right: 0; bottom: 0; background-color: rgba(255,255,255,0.1); border: 1px solid rgba(255,255,255,0.2); transition: .4s; border-radius: 24px; }
+.slider:before { position: absolute; content: ""; height: 16px; width: 16px; left: 3px; bottom: 3px; background-color: #cbd5e1; transition: .4s; border-radius: 50%; box-shadow: 0 2px 4px rgba(0,0,0,0.3); }
+input:checked + .slider { background-color: rgba(14, 165, 233, 0.3); border-color: var(--theme-blue-light); }
+input:checked + .slider:before { transform: translateX(20px); background-color: var(--theme-blue-light); }
+
+.opacity-row { margin-top: 18px; padding-top: 16px; border-top: 1px solid rgba(255,255,255,0.05); }
+.opacity-row .opacity-head { display: flex; justify-content: space-between; align-items: center; margin-bottom: 10px; }
+.opacity-row .opacity-head span:last-child { font-family: monospace; color: var(--theme-blue-light); font-size: 0.8rem; }
+input[type="range"] { -webkit-appearance: none; width: 100%; height: 5px; border-radius: 3px; background: rgba(255,255,255,0.12); outline: none; margin: 0; }
+input[type="range"]::-webkit-slider-thumb { -webkit-appearance: none; width: 18px; height: 18px; border-radius: 50%; background: var(--theme-blue-light); box-shadow: 0 2px 6px rgba(0,0,0,0.4); cursor: pointer; margin-top: -1px; }
+input[type="range"]::-moz-range-thumb { width: 16px; height: 16px; border: none; border-radius: 50%; background: var(--theme-blue-light); cursor: pointer; }
+
+/* Tabs for Layout / Text Opacity / Margin Opacity / Font Size */
+.tabs-bar { display: flex; gap: 6px; margin-bottom: 18px; flex-wrap: wrap; }
+.tab-btn { flex: 1; min-width: 72px; padding: 9px 6px; background: rgba(255,255,255,0.04); border: 1px solid rgba(255,255,255,0.08); border-radius: 10px; color: var(--text-label); font-size: 0.65rem; font-weight: 700; text-transform: uppercase; letter-spacing: 0.6px; cursor: pointer; transition: all 0.25s ease; text-align: center; user-select: none; }
+.tab-btn:hover { border-color: rgba(14, 165, 233, 0.3); color: #ffffff; }
+.tab-btn.active { background: rgba(14, 165, 233, 0.18); border-color: var(--theme-blue-light); color: #ffffff; box-shadow: 0 4px 12px -4px rgba(14, 165, 233, 0.5); }
+.tab-panel { display: none; }
+.tab-panel.active { display: block; animation: tabFadeIn 0.25s ease; }
+@keyframes tabFadeIn { from { opacity: 0; transform: translateY(4px); } to { opacity: 1; transform: translateY(0); } }
+
+/* Font size tab rows */
+.size-row { display: flex; justify-content: space-between; align-items: center; margin-bottom: 14px; }
+.size-row:last-child { margin-bottom: 0; }
+.size-row label { margin: 0; color: var(--text-main); font-size: 0.8rem; font-weight: 600; text-transform: none; letter-spacing: 0.3px; }
+.size-input-wrap { display: flex; align-items: center; gap: 8px; }
+.size-input-wrap input[type="number"] { width: 72px; padding: 8px 10px; font-size: 0.9rem; text-align: center; }
+.size-input-wrap span { font-size: 0.7rem; color: var(--placeholder); font-family: monospace; }
+
+/* Stats panel under the preview */
+.stats-panel { margin-top: 18px; background: rgba(255,255,255,0.025); border: 1px solid rgba(255,255,255,0.07); border-radius: 14px; padding: 6px 16px; }
+.stats-panel:empty { display: none; }
+.stat-row { display: flex; justify-content: space-between; align-items: center; gap: 12px; padding: 9px 0; border-bottom: 1px solid rgba(255,255,255,0.05); }
+.stat-row:last-child { border-bottom: none; }
+.stat-label { color: var(--text-label); font-weight: 700; text-transform: uppercase; letter-spacing: 0.6px; font-size: 0.65rem; white-space: nowrap; }
+.stat-dims { font-family: monospace; color: var(--theme-blue-light); font-weight: 600; font-size: 0.78rem; white-space: nowrap; }
+
+@media screen and (min-width: 1200px) {
+    body, html { width: 100vw !important; height: auto !important; min-height: 100vh !important; overflow-x: hidden !important; background: #040814 !important; margin: 0 !important; padding: 0 !important; }
+    .main-wrapper { display: flex !important; justify-content: center !important; width: 100vw !important; max-width: 100vw !important; min-height: 100vh !important; margin: 0 !important; padding: 40px 0 !important; box-sizing: border-box !important; }
+    .container {
+        width: 92vw !important; max-width: 1400px !important; margin: 0 auto !important; padding: 0 !important;
+        background: transparent !important; border: none !important; box-shadow: none !important;
+        display: grid !important; grid-template-columns: 420px 1fr !important;
+        grid-template-rows: auto auto auto !important;
+        grid-template-areas: "header preview" "inputs preview" "download preview" !important;
+        gap: 20px 60px !important;
+    }
+    .header-bar { grid-area: header !important; text-align: left !important; margin: 0 0 10px 0 !important; padding: 0 !important; max-width: none !important; }
+    .input-grid { grid-area: inputs !important; width: 100% !important; max-width: none !important; background: transparent !important; border: none !important; box-shadow: none !important; padding: 0 !important; margin: 0 !important; display: flex !important; flex-direction: column !important; gap: 15px !important; }
+    #download-btn { grid-area: download !important; width: 100% !important; max-width: none !important; height: 60px !important; margin: 20px 0 0 0 !important; }
+    .preview-section { grid-area: preview !important; width: 100% !important; max-width: none !important; background: rgba(14, 165, 233, 0.02) !important; border: 1px solid rgba(14, 165, 233, 0.1) !important; border-radius: 20px !important; padding: 40px !important; margin: 0 !important; display: flex !important; flex-direction: column !important; box-sizing: border-box !important; }
+    .preview-header { margin: 0 0 20px 0 !important; text-align: left !important; width: 100% !important; }
+    .canvas-wrapper { width: 100% !important; max-width: none !important; flex-grow: 1 !important; display: flex !important; justify-content: center !important; align-items: center !important; background: transparent !important; padding: 0 !important; border: none !important; }
+    .canvas-wrapper canvas { width: auto !important; height: auto !important; max-width: 100% !important; max-height: 80vh !important; object-fit: contain !important; box-shadow: 0 15px 40px rgba(0,0,0,0.5) !important; }
+    ::-webkit-scrollbar { width: 6px; }
+    ::-webkit-scrollbar-track { background: rgba(0,0,0,0.1); border-radius: 10px; }
+    ::-webkit-scrollbar-thumb { background: rgba(14, 165, 233, 0.3); border-radius: 10px; }
+    ::-webkit-scrollbar-thumb:hover { background: rgba(14, 165, 233, 0.6); }
+}
+</style>
+</head>
+<body>
+<div class="bg-base"></div>
+<div class="bg-pattern"></div>
+<div class="ambient-orb orb-blue"></div>
+<div class="ambient-orb orb-red"></div>
+
+<div class="main-wrapper" id="main-app">
+  <div class="container">
+    <div class="header-bar">
+      <h1>COVER PAGE DESIGNER</h1>
+    </div>
+
+    <div class="input-grid">
+      <div class="input-group full-line">
+        <label>Experiment Title</label>
+        <textarea id="title" placeholder="EXPERIMENT NAME" rows="2"></textarea>
+      </div>
+      <div class="input-group full-line">
+        <label>Student Name</label>
+        <input id="name" placeholder="STUDENT NAME" type="text">
+      </div>
+      <div class="input-group half-line">
+        <label>Registration No.</label>
+        <input id="regno" placeholder="E NUMBER" type="text">
+      </div>
+      <div class="input-group half-line">
+        <label>Group</label>
+        <input id="group" placeholder="GROUP NO" type="text">
+      </div>
+      <div class="input-group half-line">
+        <label>Semester</label>
+        <input id="semester" placeholder="SEMESTER" type="text">
+      </div>
+      <div class="input-group half-line">
+        <label>Date</label>
+        <input id="date" inputmode="numeric" pattern="[0-9]*" placeholder="DD/MM/YYYY" type="text">
+      </div>
+
+      <div class="input-group full-line options-box">
+        <div class="tabs-bar">
+          <div class="tab-btn active" data-tab="tab-layout">Layout</div>
+          <div class="tab-btn" data-tab="tab-textop">Text Opacity</div>
+          <div class="tab-btn" data-tab="tab-marginop">Margin Opacity</div>
+          <div class="tab-btn" data-tab="tab-fontsize">Font Size</div>
+        </div>
+
+        <div class="tab-panel active" id="tab-layout">
+          <div class="toggle-row">
+            <label for="toggleMargin">Margin</label>
+            <label class="switch">
+              <input type="checkbox" id="toggleMargin" checked>
+              <span class="slider"></span>
+            </label>
+          </div>
+        </div>
+
+        <div class="tab-panel" id="tab-textop">
+          <div class="opacity-head">
+            <span>Text Opacity</span>
+            <span id="opacityValue">100%</span>
+          </div>
+          <input type="range" id="rangeOpacity" min="10" max="100" value="100">
+        </div>
+
+        <div class="tab-panel" id="tab-marginop">
+          <div class="opacity-head">
+            <span>Margin Opacity</span>
+            <span id="marginOpacityValue">100%</span>
+          </div>
+          <input type="range" id="rangeMarginOpacity" min="10" max="100" value="100">
+        </div>
+
+        <div class="tab-panel" id="tab-fontsize">
+          <div class="size-row">
+            <label for="sizeTitle">Title Size</label>
+            <div class="size-input-wrap">
+              <input type="number" id="sizeTitle" min="3" max="30" step="0.5" value="10">
+              <span>mm</span>
+            </div>
+          </div>
+          <div class="size-row">
+            <label for="sizeName">Name Size</label>
+            <div class="size-input-wrap">
+              <input type="number" id="sizeName" min="2" max="20" step="0.5" value="5">
+              <span>mm</span>
+            </div>
+          </div>
+          <div class="size-row">
+            <label for="sizeDetails">Details Size</label>
+            <div class="size-input-wrap">
+              <input type="number" id="sizeDetails" min="2" max="20" step="0.5" value="4">
+              <span>mm</span>
+            </div>
+          </div>
+        </div>
+      </div>
+    </div>
+
+    <div class="preview-section">
+      <div class="preview-header">PREVIEW</div>
+      <div class="canvas-wrapper">
+        <canvas id="preview-canvas" width="840" height="1188"></canvas>
+      </div>
+      <div class="stats-panel" id="stats-panel"></div>
+    </div>
+
+    <div class="error-msg" id="error-box"></div>
+
+    <button class="btn-primary" id="download-btn">
+      <svg viewbox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round">
+        <path d="M21 15v4a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2v-4"></path>
+        <polyline points="7 10 12 15 17 10"></polyline>
+        <line x1="12" y1="3" x2="12" y2="15"></line>
+      </svg>
+      DOWNLOAD PDF
+    </button>
+  </div>
+</div>
+
+<script>
+const charPaths = { 'A': [['M',0.5,0], ['L',0,1], ['M',0.5,0], ['L',1,1], ['M',0.166,0.666], ['L',0.833,0.666]], 'B': [['M',0,1], ['L',0,0], ['L',0.6,0], ['Q',1,0, 1,0.25], ['Q',1,0.5, 0.6,0.5], ['L',0,0.5], ['M',0.6,0.5], ['Q',1,0.5, 1,0.75], ['Q',1,1, 0.6,1], ['L',0,1]], 'C': [['M',1,0.2], ['Q',1,0, 0.5,0], ['Q',0,0, 0,0.5], ['Q',0,1, 0.5,1], ['Q',1,1, 1,0.8]], 'D': [['M',0,1], ['L',0,0], ['L',0.5,0], ['Q',1,0, 1,0.5], ['Q',1,1, 0.5,1], ['L',0,1]], 'E': [['M',0,0], ['L',0,1], ['M',0,0], ['L',1,0], ['M',0,0.5], ['L',0.666,0.5], ['M',0,1], ['L',1,1]], 'F': [['M',0,0], ['L',0,1], ['M',0,0], ['L',1,0], ['M',0,0.5], ['L',0.666,0.5]], 'G': [['M',1,0.2], ['Q',1,0, 0.5,0], ['Q',0,0, 0,0.5], ['Q',0,1, 0.5,1], ['Q',1,1, 1,0.5], ['L',0.5,0.5]], 'H': [['M',0,0], ['L',0,1], ['M',1,0], ['L',1,1], ['M',0,0.5], ['L',1,0.5]], 'I': [['M',0,0], ['L',0,1]], 'J': [['M',1,0], ['L',1,0.7], ['Q',1,1, 0.5,1], ['Q',0,1, 0,0.7]], 'K': [['M',0,0], ['L',0,1], ['M',0,0.666], ['L',1,0], ['M',0.333,0.444], ['L',1,1]], 'L': [['M',0,0], ['L',0,1], ['L',1,1]], 'M': [['M',0,1], ['L',0,0], ['L',0.5,1], ['L',1,0], ['L',1,1]], 'N': [['M',0,1], ['L',0,0], ['L',1,1], ['L',1,0]], 'O': [['M',0.5,0], ['Q',1,0, 1,0.5], ['Q',1,1, 0.5,1], ['Q',0,1, 0,0.5], ['Q',0,0, 0.5,0]], 'P': [['M',0,1], ['L',0,0], ['L',0.5,0], ['Q',1,0, 1,0.25], ['Q',1,0.5, 0.5,0.5], ['L',0,0.5]], 'Q': [['M',0.5,0], ['Q',1,0, 1,0.5], ['Q',1,1, 0.5,1], ['Q',0,1, 0,0.5], ['Q',0,0, 0.5,0], ['M',0.5,0.5], ['L',1,1]], 'R': [['M',0,1], ['L',0,0], ['L',0.5,0], ['Q',1,0, 1,0.25], ['Q',1,0.5, 0.5,0.5], ['L',0,0.5], ['M',0.5,0.5], ['L',1,1]], 'S': [['M',1,0.2], ['Q',1,0, 0.5,0], ['Q',0,0, 0,0.25], ['Q',0,0.5, 0.5,0.5], ['Q',1,0.5, 1,0.75], ['Q',1,1, 0.5,1], ['Q',0,1, 0,0.8]], 'T': [['M',0,0], ['L',1,0], ['M',0.5,0], ['L',0.5,1]], 'U': [['M',0,0], ['L',0,0.7], ['Q',0,1, 0.5,1], ['Q',1,1, 1,0.7], ['L',1,0]], 'V': [['M',0,0], ['L',0.5,1], ['L',1,0]], 'W': [['M',0,0], ['L',0,1], ['M',1,0], ['L',1,1], ['M',0,1], ['L',0.5,0], ['M',1,1], ['L',0.5,0]], 'X': [['M',0,0], ['L',1,1], ['M',1,0], ['L',0,1]], 'Y': [['M',0,0], ['L',0.5,0.5], ['L',1,0], ['M',0.5,0.5], ['L',0.5,1]], 'Z': [['M',0,0], ['L',1,0], ['L',0,1], ['L',1,1]], '0': [['M',0.5,0], ['Q',1,0, 1,0.5], ['Q',1,1, 0.5,1], ['Q',0,1, 0,0.5], ['Q',0,0, 0.5,0]], '1': [['M',0,0], ['L',0,1]], '2': [['M',0,0.2], ['Q',0,0, 0.5,0], ['Q',1,0, 1,0.3], ['Q',1,0.6, 0,1], ['L',1,1]], '3': [['M',0,0.2], ['Q',0,0, 0.5,0], ['Q',1,0, 1,0.25], ['Q',1,0.5, 0.5,0.5], ['Q',1,0.5, 1,0.75], ['Q',1,1, 0.5,1], ['Q',0,1, 0,0.8]], '4': [['M',0.666,0], ['L',0.666,1], ['M',0,0.666], ['L',1,0.666], ['M',0.666,0], ['L',0,0.666]], '5': [['M',1,0], ['L',0,0], ['L',0,0.333], ['L',0.5,0.333], ['Q',1,0.333, 1,0.666], ['Q',1,1, 0.5,1], ['Q',0,1, 0,0.8]], '6': [['M',0.8,0], ['Q',0,0, 0,0.5], ['Q',0,1, 0.5,1], ['Q',1,1, 1,0.75], ['Q',1,0.45, 0.5,0.45], ['Q',0,0.45, 0,0.5]], '7': [['M',0,0], ['L',1,0], ['L',0.5,1]], '8': [['M',0.5,0.5], ['Q',1,0.5, 1,0.25], ['Q',1,0, 0.5,0], ['Q',0,0, 0,0.25], ['Q',0,0.5, 0.5,0.5], ['Q',1,0.5, 1,0.75], ['Q',1,1, 0.5,1], ['Q',0,1, 0,0.75], ['Q',0,0.5, 0.5,0.5]], '9': [['M',0.2,1], ['Q',1,1, 1,0.5], ['Q',1,0, 0.5,0], ['Q',0,0, 0,0.25], ['Q',0,0.55, 0.5,0.55], ['Q',1,0.55, 1,0.5]], '/': [['M',1,0], ['L',0,1]], '-': [['M',0.2,0.5], ['L',0.8,0.5]], '.': [['DOT']], "'": [['APOS']] };
+
+function getCharWidth(char, defaultW) { if (char === 'I' || char === '1') return 0; if (char === '.' || char === '/' || char === "'") return 1; return defaultW; }
+function calculateWidth(text, letterW, charSp, wordSp) { if (!text) return 0; text = text.toUpperCase(); let width = 0; for (let i = 0; i < text.length; i++) { const currentChar = text[i]; if (currentChar === ' ') { width += (wordSp - charSp); } else { width += getCharWidth(currentChar, letterW); if (i < text.length - 1) { width += charSp; } } } return Math.max(0, width); }
+function wrapText(text, maxW, letterW, charSp, wordSp) { const explicitLines = text.split('\n'); const lines = []; explicitLines.forEach(eLine => { const words = eLine.split(' ').filter(w => w.length > 0); if (words.length === 0) { lines.push(""); return; } let curLine = ""; words.forEach(word => { if (calculateWidth(word, letterW, charSp, wordSp) > maxW) { if (curLine.length > 0) { lines.push(curLine); curLine = ""; } let tempWord = ""; for (const char of word) { const testWord = tempWord.length === 0 ? char : tempWord + char; if (calculateWidth(testWord, letterW, charSp, wordSp) > maxW) { lines.push(tempWord); tempWord = char; } else { tempWord = testWord; } } curLine = tempWord; } else { const testLine = curLine.length === 0 ? word : curLine + " " + word; if (calculateWidth(testLine, letterW, charSp, wordSp) > maxW) { lines.push(curLine); curLine = word; } else { curLine = testLine; } } }); if (curLine.length > 0) lines.push(curLine); }); return lines; }
+function drawText(engine, text, startX, startY, letterW, letterH, charSp, wordSp) { let currentX = startX; text = text.toUpperCase(); for (let i = 0; i < text.length; i++) { const char = text[i]; if (char === ' ') { currentX += (wordSp - charSp); continue; } const cw = getCharWidth(char, letterW); const path = charPaths[char]; if (path) { if (path[0][0] === 'DOT') { engine.drawDot(currentX + 0.5, startY + letterH - 0.5, 0.375); } else if (path[0][0] === 'APOS') { engine.drawDot(currentX + 0.5, startY + 0.5, 0.375); engine.beginPath(); engine.moveTo(currentX + 0.725, startY + 0.45); engine.quadCurveTo(currentX + 0.725, startY + 1.0, currentX + 0.35, startY + 1.5); engine.stroke(); } else { engine.beginPath(); path.forEach(cmd => { const type = cmd[0]; const mw = (char === 'I' || char === '1') ? 0 : (char === '.' || char === '/' || char === "'") ? 1 : letterW; if (type === 'M') { engine.moveTo(currentX + cmd[1] * mw, startY + cmd[2] * letterH); } else if (type === 'L') { engine.lineTo(currentX + cmd[1] * mw, startY + cmd[2] * letterH); } else if (type === 'Q') { engine.quadCurveTo( currentX + cmd[1] * mw, startY + cmd[2] * letterH, currentX + cmd[3] * mw, startY + cmd[4] * letterH ); } }); engine.stroke(); } } currentX += cw; if (i < text.length - 1) { currentX += charSp; } } }
+
+class Renderer {
+    constructor(type, context, color) { this.type = type; this.ctx = context; this.curX = 0; this.curY = 0; this.color = color || [0, 0, 0]; }
+    setStyle(color) { if (color) this.color = color; const [r, g, b] = this.color; if (this.type === 'canvas') { this.ctx.strokeStyle = `rgb(${r},${g},${b})`; this.ctx.lineWidth = 0.3; this.ctx.lineCap = 'round'; this.ctx.lineJoin = 'round'; } else { this.ctx.setDrawColor(r, g, b); this.ctx.setLineWidth(0.3); this.ctx.setLineCap(1); this.ctx.setLineJoin(1); } }
+    beginPath() { if (this.type === 'canvas') this.ctx.beginPath(); }
+    stroke() { if (this.type === 'canvas') this.ctx.stroke(); }
+    moveTo(x, y) { this.curX = x; this.curY = y; if (this.type === 'canvas') this.ctx.moveTo(x, y); }
+    lineTo(x, y) { if (this.type === 'canvas') { this.ctx.lineTo(x, y); } else { this.ctx.line(this.curX, this.curY, x, y); } this.curX = x; this.curY = y; }
+    quadCurveTo(cx, cy, x, y) { if (this.type === 'canvas') { this.ctx.quadraticCurveTo(cx, cy, x, y); this.curX = x; this.curY = y; } else { const steps = 40; const x1 = this.curX; const y1 = this.curY; let prevX = x1; let prevY = y1; for (let i = 1; i <= steps; i++) { const t = i / steps; const u = 1 - t; const xt = u * u * x1 + 2 * u * t * cx + t * t * x; const yt = u * u * y1 + 2 * u * t * cy + t * t * y; this.ctx.line(prevX, prevY, xt, yt); prevX = xt; prevY = yt; } this.curX = x; this.curY = y; } }
+    drawRect(x, y, w, h) { if (this.type === 'canvas') { this.ctx.rect(x, y, w, h); } else { this.ctx.rect(x, y, w, h, 'S'); } }
+    drawDot(x, y, radius) { const [r, g, b] = this.color; if (this.type === 'canvas') { this.ctx.beginPath(); this.ctx.fillStyle = `rgb(${r},${g},${b})`; this.ctx.arc(x, y, radius, 0, 2 * Math.PI); this.ctx.fill(); } else { this.ctx.setFillColor(r, g, b); this.ctx.circle(x, y, radius, 'F'); } }
+}
+
+// generateDocument: identical layout logic to the original. The margin used for positioning is now
+// always 12mm regardless of the toggle, so turning the border off never shifts spacing or any position —
+// it only stops drawing the rectangle itself. Font sizes are adjustable; width/spacing scale
+// proportionally to each size so the same centering/anchor formulas keep everything in place.
+function generateDocument(engine, marginOn, textColor, marginColor, sizes, statsOut) {
+    sizes = sizes || {};
+    const margin = 12; const writableW = 210 - (2 * margin);
+
+    if (marginOn) {
+        engine.setStyle(marginColor || textColor);
+        engine.beginPath(); engine.drawRect(margin, margin, writableW, 297 - (2 * margin)); engine.stroke();
+    }
+    engine.setStyle(textColor);
+
+    const rawTitle = document.getElementById('title').value.trim() || 'EXPERIMENT NAME'; const nameStr = document.getElementById('name').value.trim() || 'STUDENT NAME'; const regStr = document.getElementById('regno').value.trim() || 'E NUMBER'; const groupStr = document.getElementById('group').value.trim() || 'GROUP NO'; const semStr = document.getElementById('semester').value.trim() || 'SEMESTER'; const dateStr = document.getElementById('date').value.trim() || 'DD/MM/YYYY';
+
+    const tH = sizes.title || 10, tW = tH * 0.8, tCSp = 1, tWSp = tH * 0.8, tLSp = tH * 0.6; const titleLines = wrapText(rawTitle, writableW, tW, tCSp, tWSp); let ty = margin + ((220 - ((titleLines.length * tH) + ((titleLines.length - 1) * tLSp))) / 2);
+    titleLines.forEach((line, idx) => { const cleanLine = line.trim(); if (cleanLine.length > 0) { const lw = calculateWidth(cleanLine, tW, tCSp, tWSp); const tx = margin + ((writableW - lw) / 2); drawText(engine, cleanLine, tx, ty, tW, tH, tCSp, tWSp); engine.beginPath(); engine.moveTo(tx, ty + tH + 1); engine.lineTo(tx + lw, ty + tH + 1); engine.stroke(); if (statsOut) statsOut.push({ label: titleLines.length > 1 ? `Title (line ${idx + 1})` : 'Title', width: lw, height: tH }); } ty += tH + tLSp; });
+
+    const nameCh = sizes.name || 5, nameCw = nameCh * 0.8, nameWs = nameCh * 0.8; const detCh = sizes.details || 4, detCw = detCh * 0.75, detWs = detCh * 0.75;
+    const detailsRaw = [nameStr, regStr, groupStr, semStr, dateStr]; const detailLabels = ['Name', 'Reg. No.', 'Group', 'Semester', 'Date']; const processedDetails = [];
+    detailsRaw.forEach((text, index) => { const isName = index === 0; const cw = isName ? nameCw : detCw; const ch = isName ? nameCh : detCh; const ws = isName ? nameWs : detWs; const dist = 3; const cleanText = text.trim(); const wrapped = wrapText(cleanText, 9999, cw, 1, ws); processedDetails.push({ lines: wrapped, cw, ch, ws, dist, label: detailLabels[index] }); });
+    const maxNameW = calculateWidth(processedDetails[0].lines[0], nameCw, 1, nameWs); const dx = (margin + writableW - 10) - maxNameW; let totalHeight = 0;
+    processedDetails.forEach((item, i) => { item.lines.forEach((line, j) => { totalHeight += item.ch + 1; if (!(i === processedDetails.length - 1 && j === item.lines.length - 1)) { totalHeight += item.dist; } }); });
+    let dy = (297 - margin - 15) - totalHeight;
+    processedDetails.forEach((item, i) => { item.lines.forEach((line, j) => { const cleanLine = line.trim(); if (cleanLine.length > 0) { const lw = calculateWidth(cleanLine, item.cw, 1, item.ws); drawText(engine, cleanLine, dx, dy, item.cw, item.ch, 1, item.ws); engine.beginPath(); engine.moveTo(dx, dy + item.ch + 1); engine.lineTo(dx + lw, dy + item.ch + 1); engine.stroke(); if (statsOut) statsOut.push({ label: item.lines.length > 1 ? `${item.label} (line ${j + 1})` : item.label, width: lw, height: item.ch }); } dy += item.ch + 1; if (!(i === processedDetails.length - 1 && j === item.lines.length - 1)) { dy += item.dist; } }); });
+}
+
+function isMarginOn() { return document.getElementById('toggleMargin').checked; }
+function getInkColor() {
+    const pct = parseInt(document.getElementById('rangeOpacity').value, 10);
+    const gray = Math.round(255 * (1 - pct / 100));
+    return [gray, gray, gray];
+}
+function getMarginColor() {
+    const el = document.getElementById('rangeMarginOpacity');
+    const pct = parseInt(el ? el.value : 100, 10);
+    const gray = Math.round(255 * (1 - (isNaN(pct) ? 100 : pct) / 100));
+    return [gray, gray, gray];
+}
+function getSizes() {
+    const t = parseFloat(document.getElementById('sizeTitle').value);
+    const n = parseFloat(document.getElementById('sizeName').value);
+    const d = parseFloat(document.getElementById('sizeDetails').value);
+    return {
+        title: (!isNaN(t) && t > 0) ? t : 10,
+        name: (!isNaN(n) && n > 0) ? n : 5,
+        details: (!isNaN(d) && d > 0) ? d : 4
+    };
+}
+function renderStats(stats) {
+    const panel = document.getElementById('stats-panel'); if (!panel) return;
+    panel.innerHTML = stats.map(s => `<div class="stat-row"><span class="stat-label">${s.label}</span><span class="stat-dims">${s.width.toFixed(1)}mm W &times; ${s.height.toFixed(1)}mm H</span></div>`).join('');
+}
+
+function updateLivePreview() {
+    const canvas = document.getElementById('preview-canvas'); if (!canvas || !canvas.getContext) return;
+    const ctx = canvas.getContext('2d'); ctx.setTransform(1, 0, 0, 1, 0, 0);
+    ctx.fillStyle = '#ffffff'; ctx.fillRect(0, 0, canvas.width, canvas.height); ctx.scale(4, 4);
+    const stats = [];
+    generateDocument(new Renderer('canvas', ctx, getInkColor()), isMarginOn(), getInkColor(), getMarginColor(), getSizes(), stats);
+    renderStats(stats);
+}
+
+async function executeDownload() {
+    const errorBox = document.getElementById('error-box'); errorBox.style.display = 'none';
+    const btn = document.getElementById('download-btn');
+    const originalLabel = btn.innerHTML;
+    try {
+        if (!window.jspdf || !window.jspdf.jsPDF) {
+            btn.disabled = true; btn.style.opacity = '0.7'; btn.innerHTML = 'PREPARING PDF ENGINE…';
+            await ensurePdfLib(true);
+        }
+        const { jsPDF } = window.jspdf; const doc = new jsPDF({ format: 'a4', unit: 'mm' });
+        generateDocument(new Renderer('pdf', doc, getInkColor()), isMarginOn(), getInkColor(), getMarginColor(), getSizes());
+        const regVal = document.getElementById('regno').value.replace(/[^a-zA-Z0-9]/g, '');
+        doc.save(`Cover_${regVal || 'Doc'}.pdf`);
+    } catch (error) { errorBox.textContent = error.message; errorBox.style.display = 'block'; }
+    finally { btn.disabled = false; btn.style.opacity = ''; btn.innerHTML = originalLabel; }
+}
+
+document.addEventListener('DOMContentLoaded', () => {
+    const dateInput = document.getElementById('date'); const semInput = document.getElementById('semester'); const groupInput = document.getElementById('group');
+    if (dateInput) { dateInput.setAttribute('inputmode', 'numeric'); dateInput.setAttribute('pattern', '[0-9]*'); dateInput.setAttribute('placeholder', 'DD/MM/YYYY'); }
+    function setupPrefixField(input, prefix) { input.addEventListener('focus', () => { if (input.value.trim() === '') { input.value = prefix; requestAnimationFrame(() => { input.setSelectionRange(prefix.length, prefix.length); }); } }); input.addEventListener('keydown', e => { const minLength = prefix.length; if ((e.key === 'Backspace' || e.key === 'Delete') && input.selectionStart <= minLength) { e.preventDefault(); } }); input.addEventListener('click', () => { const minLength = prefix.length; if (input.selectionStart < minLength) { requestAnimationFrame(() => { input.setSelectionRange(minLength, minLength); }); } }); }
+    setupPrefixField(semInput, 'SEMESTER '); setupPrefixField(groupInput, 'GROUP ');
+    dateInput.addEventListener('input', (e) => {
+        if (e.inputType === 'deleteContentBackward') return; let val = dateInput.value; let raw = val.replace(/\D/g, '');
+        if (raw.length === 1 && parseInt(raw[0]) > 3) { raw = '0' + raw[0]; } else if (raw.length >= 2) { let day = parseInt(raw.substring(0, 2)); if (day > 31) raw = '31' + raw.substring(2); if (day === 0) raw = '01' + raw.substring(2); }
+        if (raw.length === 3 && parseInt(raw[2]) > 1) { raw = raw.substring(0, 2) + '0' + raw[2]; } else if (raw.length >= 4) { let month = parseInt(raw.substring(2, 4)); if (month > 12) raw = raw.substring(0, 2) + '12' + raw.substring(4); if (month === 0) raw = raw.substring(0, 2) + '01' + raw.substring(4); }
+        raw = raw.slice(0, 8); let formatted = ''; if (raw.length > 0) formatted += raw.substring(0, 2); if (raw.length >= 3) formatted += '/' + raw.substring(2, 4); if (raw.length >= 5) formatted += '/' + raw.substring(4, 8);
+        if (raw.length === 2 && val.length === 2) formatted += '/'; if (raw.length === 4 && val.length === 5) formatted += '/'; dateInput.value = formatted;
+    });
+    dateInput.addEventListener('keydown', e => { if (!/[0-9]|Backspace|Delete|ArrowLeft|ArrowRight|Tab/.test(e.key)) { e.preventDefault(); } });
+
+    updateLivePreview();
+    document.querySelectorAll('input, textarea').forEach(inp => { inp.addEventListener('input', updateLivePreview); });
+    document.getElementById('rangeOpacity').addEventListener('input', (e) => { document.getElementById('opacityValue').textContent = e.target.value + '%'; });
+    const rangeMarginOpacity = document.getElementById('rangeMarginOpacity');
+    if (rangeMarginOpacity) { rangeMarginOpacity.addEventListener('input', (e) => { document.getElementById('marginOpacityValue').textContent = e.target.value + '%'; }); }
+    document.querySelectorAll('.tab-btn').forEach(btn => {
+        btn.addEventListener('click', () => {
+            document.querySelectorAll('.tab-btn').forEach(b => b.classList.remove('active'));
+            document.querySelectorAll('.tab-panel').forEach(p => p.classList.remove('active'));
+            btn.classList.add('active');
+            document.getElementById(btn.dataset.tab).classList.add('active');
+        });
+    });
+    document.getElementById('download-btn').addEventListener('click', executeDownload);
+});
+</script>
+</body>
+</html>
